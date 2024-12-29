@@ -4,11 +4,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { navigationRef } from './RootNavigation';
 import { Ionicons } from '@expo/vector-icons';
+import { View } from 'react-native';
 
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import NewTaskScreen from '../screens/NewTaskScreen';
 import ExpenseScreen from '../screens/ExpenseScreen';
+import NewExpenseScreen from '../screens/NewExpenseScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -32,6 +34,45 @@ const HomeStack = () => {
   );
 };
 
+const ExpenseStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen 
+        name="ExpenseScreen" 
+        component={ExpenseScreen}
+        options={{
+          headerStyle: {
+            backgroundColor: '#fff',
+          },
+          headerTintColor: '#333',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+      <Stack.Screen 
+        name="NewExpense" 
+        component={NewExpenseScreen}
+        options={{
+          headerShown: true,
+          title: 'Add Expense',
+          headerStyle: {
+            backgroundColor: '#fff',
+          },
+          headerTintColor: '#333',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
+
 const TabNavigator = () => {
   return (
     <Tab.Navigator
@@ -45,13 +86,20 @@ const TabNavigator = () => {
             iconName = focused ? 'wallet' : 'wallet-outline';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return (
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name={iconName} size={size} color={color} />
+            </View>
+          );
         },
         tabBarActiveTintColor: '#2196F3',
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
           paddingBottom: 5,
           height: 55,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
         },
       })}
     >
@@ -64,15 +112,9 @@ const TabNavigator = () => {
       />
       <Tab.Screen
         name="Expenses"
-        component={ExpenseScreen}
+        component={ExpenseStack}
         options={{
-          headerStyle: {
-            backgroundColor: '#fff',
-          },
-          headerTintColor: '#333',
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
+          headerShown: false,
         }}
       />
     </Tab.Navigator>

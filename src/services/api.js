@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import * as RootNavigation from '../navigation/RootNavigation';
 
-const API_URL = 'https://todo-app.freecoderteam.com/api';
+const API_URL = 'https://todo-app.freecoderteam.com/api';  // Update this to your Laravel API URL
 
 const headers = {
   'Content-Type': 'application/json',
@@ -166,6 +166,35 @@ const api = {
       Alert.alert('Error', error.message || 'Failed to delete task');
       throw error;
     }
+  },
+
+  // Expense API endpoints
+  getExpenseDashboard: async () => {
+    return await apiRequest('/expenses/dashboard');
+  },
+
+  getExpenses: async () => {
+    return await apiRequest('/expenses');
+  },
+
+  createExpense: async (expenseData) => {
+    return await apiRequest('/expenses', {
+      method: 'POST',
+      body: JSON.stringify(expenseData),
+    });
+  },
+
+  updateExpense: async (expenseId, expenseData) => {
+    return await apiRequest(`/expenses/${expenseId}`, {
+      method: 'PUT',
+      body: JSON.stringify(expenseData),
+    });
+  },
+
+  deleteExpense: async (expenseId) => {
+    return await apiRequest(`/expenses/${expenseId}`, {
+      method: 'DELETE',
+    });
   },
 };
 
