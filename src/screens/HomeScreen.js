@@ -14,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
-import { requestNotificationPermissions, scheduleTaskReminder, cancelTaskNotification, scheduleDailyNotification } from '../services/notificationService';
 
 const HomeScreen = ({ navigation }) => {
   const [tasks, setTasks] = useState([]);
@@ -29,12 +28,6 @@ const HomeScreen = ({ navigation }) => {
     try {
       const response = await api.getTasks();
       setTasks(response);
-      // Schedule notifications for all incomplete tasks
-      response.forEach(task => {
-        if (!task.status) {
-          scheduleTaskReminder(task);
-        }
-      });
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch tasks');
     } finally {
@@ -56,7 +49,6 @@ const HomeScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    requestNotificationPermissions();
     loadUserName();
     const unsubscribe = navigation.addListener('focus', () => {
       fetchTasks();
@@ -89,22 +81,16 @@ const HomeScreen = ({ navigation }) => {
     try {
       const newStatus = !currentStatus;
       await api.updateTaskStatus(taskId, newStatus);
-      // Update local state
       setTasks(prevTasks =>
-        prevTasks.map(task => {
-          if (task.id === taskId) {
-            const updatedTask = { ...task, status: newStatus };
-            // Update notification when task status changes
-            scheduleTaskReminder(updatedTask);
-            return updatedTask;
-          }
-          return task;
-        })
+        prevTasks.map(task =>
+          task.id === taskId
+            ? { ...task, status: newStatus }
+            : task
+        )
       );
       Alert.alert('Success', `Task marked as ${newStatus ? 'completed' : 'incomplete'}`);
     } catch (error) {
       Alert.alert('Error', 'Failed to update task status');
-      console.error('Update status error:', error);
     } finally {
       setIsUpdating(false);
     }
@@ -131,8 +117,6 @@ const HomeScreen = ({ navigation }) => {
             try {
               await api.deleteTask(taskId);
               setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-              // Cancel any scheduled notifications for the deleted task
-              await cancelTaskNotification(taskId);
             } catch (error) {
               Alert.alert('Error', 'Failed to delete task');
               console.error('Delete task error:', error);
@@ -181,8 +165,6 @@ const HomeScreen = ({ navigation }) => {
               : t
           )
         );
-        // Update notification when task status changes
-        scheduleTaskReminder({ ...task, status: !task.status });
       } catch (error) {
         Alert.alert('Error', 'Failed to update task status');
       } finally {
@@ -206,9 +188,7 @@ const HomeScreen = ({ navigation }) => {
               setIsUpdating(true);
               try {
                 await api.deleteTask(task.id);
-                setTasks(prevTasks => prevTasks.filter(task => task.id !== task.id));
-                // Cancel any scheduled notifications for the deleted task
-                await cancelTaskNotification(task.id);
+                setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
               } catch (error) {
                 Alert.alert('Error', 'Failed to delete task');
               } finally {

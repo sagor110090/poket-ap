@@ -25,9 +25,6 @@
       "permissions": [
         "INTERNET",
         "SYSTEM_ALERT_WINDOW",
-        "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED",
-        "SCHEDULE_EXACT_ALARM",
         "ACCESS_NETWORK_STATE",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
