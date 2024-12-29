@@ -1,13 +1,83 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { navigationRef } from './RootNavigation';
+import { Ionicons } from '@expo/vector-icons';
 
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import NewTaskScreen from '../screens/NewTaskScreen';
+import ExpenseScreen from '../screens/ExpenseScreen';
 
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+const HomeStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen 
+        name="HomeScreen" 
+        component={HomeScreen}
+      />
+      <Stack.Screen 
+        name="NewTask" 
+        component={NewTaskScreen} 
+      />
+    </Stack.Navigator>
+  );
+};
+
+const TabNavigator = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Expenses') {
+            iconName = focused ? 'wallet' : 'wallet-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#2196F3',
+        tabBarInactiveTintColor: 'gray',
+        tabBarStyle: {
+          paddingBottom: 5,
+          height: 55,
+        },
+      })}
+    >
+      <Tab.Screen 
+        name="Home" 
+        component={HomeStack}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="Expenses"
+        component={ExpenseScreen}
+        options={{
+          headerStyle: {
+            backgroundColor: '#fff',
+          },
+          headerTintColor: '#333',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const AppNavigator = () => {
   return (
@@ -20,17 +90,13 @@ const AppNavigator = () => {
       >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen 
-          name="Home" 
-          component={HomeScreen}
+          name="MainApp" 
+          component={TabNavigator}
           options={{
             // Prevent going back to login screen
             gestureEnabled: false,
             headerBackVisible: false,
           }}
-        />
-        <Stack.Screen 
-          name="NewTask" 
-          component={NewTaskScreen} 
         />
       </Stack.Navigator>
     </NavigationContainer>

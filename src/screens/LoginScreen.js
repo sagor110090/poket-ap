@@ -51,7 +51,7 @@ const LoginScreen = ({ navigation }) => {
       const response = await api.login(email, password);
       // Store the name from API response
       await AsyncStorage.setItem('userName', response.name);
-      navigation.replace('Home');
+      navigation.replace('MainApp');
     } catch (error) {
       Alert.alert('Error', error.message || 'Login failed');
     } finally {
