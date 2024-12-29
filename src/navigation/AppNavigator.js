@@ -22,16 +22,16 @@ const HomeStack = () => {
         headerShown: false,
       }}
     >
-      <Stack.Screen 
-        name="HomeScreen" 
-        component={HomeScreen}
-      />
-      <Stack.Screen 
-        name="NewTask" 
-        component={NewTaskScreen} 
-      />
-    </Stack.Navigator>
-  );
+    <Stack.Screen 
+      name="HomeScreen" 
+      component={HomeScreen}
+    />
+    <Stack.Screen 
+      name="NewTask" 
+      component={NewTaskScreen}
+    />
+  </Stack.Navigator>
+);
 };
 
 const ExpenseStack = () => {
@@ -41,9 +41,9 @@ const ExpenseStack = () => {
         headerShown: false,
       }}
     >
-      <Stack.Screen 
-        name="ExpenseScreen" 
-        component={ExpenseScreen}
+    <Stack.Screen 
+      name="ExpenseScreen" 
+      component={ExpenseScreen}
         options={{
           headerStyle: {
             backgroundColor: '#fff',
@@ -53,29 +53,29 @@ const ExpenseStack = () => {
             fontWeight: '600',
           },
         }}
-      />
-      <Stack.Screen 
-        name="NewExpense" 
-        component={NewExpenseScreen}
-        options={{
+    />
+    <Stack.Screen 
+      name="NewExpense" 
+      component={NewExpenseScreen}
+      options={{ 
           headerShown: true,
           title: 'Add Expense',
-          headerStyle: {
+        headerStyle: {
             backgroundColor: '#fff',
-          },
-          headerTintColor: '#333',
+        },
+        headerTintColor: '#333',
           headerTitleStyle: {
             fontWeight: '600',
           },
-        }}
-      />
-    </Stack.Navigator>
-  );
+      }}
+    />
+  </Stack.Navigator>
+);
 };
 
 const TabNavigator = () => {
   return (
-    <Tab.Navigator
+  <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
@@ -94,36 +94,36 @@ const TabNavigator = () => {
         },
         tabBarActiveTintColor: '#2196F3',
         tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {
+      tabBarStyle: {
           paddingBottom: 5,
           height: 55,
-        },
+      },
         tabBarLabelStyle: {
           fontSize: 12,
         },
       })}
-    >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeStack}
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Tab.Screen
-        name="Expenses"
-        component={ExpenseStack}
-        options={{
-          headerShown: false,
-        }}
-      />
-    </Tab.Navigator>
-  );
+  >
+    <Tab.Screen
+      name="Home"
+      component={HomeStack}
+      options={{
+        headerShown: false,
+      }}
+    />
+    <Tab.Screen
+      name="Expenses"
+      component={ExpenseStack}
+      options={{
+        headerShown: false,
+      }}
+    />
+  </Tab.Navigator>
+);
 };
 
 const AppNavigator = () => {
   return (
-    <NavigationContainer ref={navigationRef}>
+  <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName="Login"
         screenOptions={{
@@ -131,18 +131,18 @@ const AppNavigator = () => {
         }}
       >
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen 
+      <Stack.Screen
           name="MainApp" 
-          component={TabNavigator}
+        component={TabNavigator}
           options={{
             // Prevent going back to login screen
             gestureEnabled: false,
             headerBackVisible: false,
           }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
+      />
+    </Stack.Navigator>
+  </NavigationContainer>
+);
 };
 
 export default AppNavigator;

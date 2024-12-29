@@ -4,11 +4,11 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
   Alert,
   FlatList,
   StatusBar,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -22,6 +22,8 @@ const HomeScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [userName, setUserName] = useState('');
+  const [activeTab, setActiveTab] = useState('tasks');
+  const [expenses, setExpenses] = useState([]);
 
   const fetchTasks = async () => {
     setIsLoading(true);
@@ -48,11 +50,24 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const fetchExpenses = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.getExpenses();
+      setExpenses(response);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch expenses');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadUserName();
     const unsubscribe = navigation.addListener('focus', () => {
       fetchTasks();
       fetchCategories();
+      fetchExpenses();
     });
 
     return unsubscribe;
@@ -130,23 +145,28 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  const renderCategoryItem = ({ item }) => (
-    <TouchableOpacity
-      style={[
-        styles.categoryItem,
-        selectedCategory === item.id && styles.categoryItemActive,
-      ]}
-      onPress={() => setSelectedCategory(item.id)}
-    >
-      <Text
-        style={[
-          styles.categoryItemText,
-          selectedCategory === item.id && styles.categoryItemTextActive,
-        ]}
-      >
-        {item.title}
-      </Text>
-    </TouchableOpacity>
+  const renderCategories = () => (
+    <View style={styles.categoryList}>
+      {categories.map((item) => (
+        <TouchableOpacity
+          key={item.id?.toString() || 'all'}
+          style={[
+            styles.categoryItem,
+            selectedCategory === item.id && styles.categoryItemActive,
+          ]}
+          onPress={() => setSelectedCategory(item.id)}
+        >
+          <Text
+            style={[
+              styles.categoryItemText,
+              selectedCategory === item.id && styles.categoryItemTextActive,
+            ]}
+          >
+            {item.title}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
   );
 
   const filteredTasks = tasks.filter(task => 
@@ -266,29 +286,18 @@ const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FD" />
+      
       <View style={styles.header}>
-        <View style={styles.userInfo}>
+        <View>
           <Text style={styles.greeting}>Welcome back,</Text>
           <Text style={styles.userName}>{userName}</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.logoutButton} 
-          onPress={handleLogout}
-        >
-          <Icon name="logout-variant" size={20} color="#FF3B30" />
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Icon name="logout" size={24} color="#FF3B30" />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.categoriesContainer}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={categories}
-          renderItem={renderCategoryItem}
-          keyExtractor={item => item.id?.toString() || 'all'}
-          contentContainerStyle={styles.categoriesList}
-        />
-      </View>
+      {renderCategories()}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
@@ -330,8 +339,9 @@ const HomeScreen = ({ navigation }) => {
         style={styles.createButton}
         onPress={() => navigation.navigate('NewTask')}
       >
-        <Icon name="plus-circle" size={24} color="white" style={styles.createButtonIcon} />
-        <Text style={styles.createButtonText}>Add New Task</Text>
+        <Text style={styles.createButtonText}>
+          <Icon name="plus" size={24} color="#FFF" /> Add New Task
+        </Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -354,9 +364,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-  },
-  userInfo: {
-    gap: 2,
   },
   greeting: {
     fontSize: 13,
@@ -383,11 +390,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  categoriesContainer: {
-    marginVertical: 12,
-  },
-  categoriesList: {
+  categoryList: {
+    flexDirection: 'row',
     paddingHorizontal: 20,
+    paddingBottom: 16,
     gap: 8,
   },
   categoryItem: {
@@ -447,65 +453,79 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A1A',
   },
-  taskCard: {
-    backgroundColor: 'white',
+  createButton: {
+    backgroundColor: '#4169E1',
+    marginHorizontal: 20,
+    marginVertical: 16,
+    padding: 16,
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  taskCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
   },
   taskHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
   },
   taskTitleContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+  },
+  statusButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  statusIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FF3B30',
+  },
+  statusCompleted: {
+    backgroundColor: '#00C48C',
   },
   taskTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
-    flex: 1,
+    color: '#333',
   },
-  statusButton: {
-    padding: 6,
-    marginLeft: -6,
+  taskActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  statusIndicator: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#FFA500',
-    borderWidth: 2,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  statusCompleted: {
-    backgroundColor: '#4CAF50',
-  },
-  editButton: {
-    padding: 6,
-    marginLeft: 6,
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
   taskDate: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#666',
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   dateIcon: {
     marginRight: 4,
@@ -513,45 +533,6 @@ const styles = StyleSheet.create({
   taskDescription: {
     fontSize: 14,
     color: '#666',
-    lineHeight: 20,
-  },
-  taskActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  actionButton: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: '#F8F9FD',
-  },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#4169E1',
-    margin: 24,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#4169E1',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  createButtonIcon: {
-    width: 20,
-    height: 20,
-    tintColor: 'white',
-    marginRight: 8,
-  },
-  createButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

@@ -8,8 +8,12 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
+  Platform,
+  Pressable,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import api from '../services/api';
 
 const NewExpenseScreen = ({ navigation, route }) => {
@@ -19,7 +23,33 @@ const NewExpenseScreen = ({ navigation, route }) => {
   const [title, setTitle] = useState(editingExpense?.title || '');
   const [amount, setAmount] = useState(editingExpense?.amount?.toString() || '');
   const [category, setCategory] = useState(editingExpense?.category || 'general');
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (editingExpense?.expense_date) {
+      // Parse the date string from backend (format: "Dec 10, 2024")
+      const [month, day, year] = editingExpense.expense_date.replace(',', '').split(' ');
+      const monthIndex = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        .indexOf(month);
+      return new Date(year, monthIndex, parseInt(day));
+    }
+    return new Date();
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const formatDate = (date) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const day = date.getDate();
+    const year = date.getFullYear();
+    return `${month} ${day}, ${year}`;
+  };
+
+  const onDateChange = (event, selected) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selected) {
+      setSelectedDate(selected);
+    }
+  };
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -38,7 +68,7 @@ const NewExpenseScreen = ({ navigation, route }) => {
         title,
         amount: parseFloat(amount),
         category,
-        expense_date: new Date().toISOString().split('T')[0],
+        expense_date: formatDate(selectedDate),
       };
 
       if (isEditing) {
@@ -100,6 +130,25 @@ const NewExpenseScreen = ({ navigation, route }) => {
           </View>
         </View>
 
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Date</Text>
+          <Pressable
+            onPress={() => setShowDatePicker(true)}
+            style={styles.dateButton}
+          >
+            <Icon name="calendar" size={20} color="#666" style={styles.dateIcon} />
+            <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
+          </Pressable>
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={onDateChange}
+            />
+          )}
+        </View>
+
         <TouchableOpacity
           style={styles.button}
           onPress={handleSave}
@@ -153,6 +202,22 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  dateIcon: {
+    marginRight: 8,
+  },
+  dateText: {
+    fontSize: 16,
+    color: '#333',
   },
   button: {
     backgroundColor: '#2196F3',
