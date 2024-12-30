@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
   View,
   Text,
@@ -9,6 +10,7 @@ import {
   FlatList,
   StatusBar,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -23,7 +25,7 @@ const HomeScreen = ({ navigation }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [userName, setUserName] = useState('');
   const [activeTab, setActiveTab] = useState('tasks');
-  const [expenses, setExpenses] = useState([]);
+  const [expenses, setExpenses] = useState([]); 
 
   const fetchTasks = async () => {
     setIsLoading(true);
@@ -72,6 +74,14 @@ const HomeScreen = ({ navigation }) => {
 
     return unsubscribe;
   }, [navigation]);
+
+  const onRefresh = async () => {
+    await fetchTasks();
+    await fetchCategories();
+    await fetchExpenses();
+  };
+
+  
 
   const loadUserName = async () => {
     try {
@@ -147,6 +157,12 @@ const HomeScreen = ({ navigation }) => {
 
   const renderCategories = () => (
     <View style={styles.categoryList}>
+      <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoryContainer}
+              contentContainerStyle={styles.categoryContent}
+            >
       {categories.map((item) => (
         <TouchableOpacity
           key={item.id?.toString() || 'all'}
@@ -166,6 +182,7 @@ const HomeScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       ))}
+     </ScrollView>
     </View>
   );
 
@@ -274,14 +291,7 @@ const HomeScreen = ({ navigation }) => {
       </View>
     );
   };
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4169E1" />
-      </View>
-    );
-  }
+ 
 
   return (
     <SafeAreaView style={styles.container}>
@@ -299,7 +309,11 @@ const HomeScreen = ({ navigation }) => {
 
       {renderCategories()}
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
+      }
+      >
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
@@ -335,14 +349,12 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      <TouchableOpacity 
-        style={styles.createButton}
+      <TouchableOpacity
+          style={styles.fab}
         onPress={() => navigation.navigate('NewTask')}
       >
-        <Text style={styles.createButtonText}>
-          <Icon name="plus" size={24} color="#FFF" /> Add New Task
-        </Text>
-      </TouchableOpacity>
+        <Ionicons name="add" size={24} color="white" />
+      </TouchableOpacity> 
     </SafeAreaView>
   );
 };
@@ -412,6 +424,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    backgroundColor: '#2196F3',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   categoryItemActive: {
     backgroundColor: '#4169E1',

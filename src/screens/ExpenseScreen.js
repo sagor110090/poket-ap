@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, SafeAreaView } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -130,7 +130,7 @@ const ExpensesList = ({ navigation }) => {
 
   useEffect(() => {
     fetchExpenses();
-  }, []);
+  }, [navigation]);
 
   const handleEdit = (expense) => {
     navigation.navigate('NewExpense', { expense });
@@ -148,7 +148,7 @@ const ExpensesList = ({ navigation }) => {
           onPress: async () => {
             try {
               await api.deleteExpense(expenseId);
-              fetchExpenses(); // Refresh the list
+              await fetchExpenses(); // Refresh the list
             } catch (error) {
               Alert.alert('Error', error.message || 'Failed to delete expense');
             }

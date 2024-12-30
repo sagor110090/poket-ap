@@ -74,11 +74,12 @@ const NewExpenseScreen = ({ navigation, route }) => {
       if (isEditing) {
         await api.updateExpense(editingExpense.id, expenseData);
         Alert.alert('Success', 'Expense updated successfully');
+        navigation.goBack();
       } else {
         await api.createExpense(expenseData);
         Alert.alert('Success', 'Expense added successfully');
+        navigation.goBack();
       }
-      navigation.goBack();
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to save expense');
     } finally {
