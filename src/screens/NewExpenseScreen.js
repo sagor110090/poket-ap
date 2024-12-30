@@ -9,13 +9,26 @@ import {
   ScrollView,
   Alert,
   Platform,
+  Modal,
   Pressable,
   SafeAreaView
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../services/api';
+
+const CATEGORIES = [
+  { label: 'General', value: 'general' },
+  { label: 'Food', value: 'food' },
+  { label: 'Transportation', value: 'transportation' },
+  { label: 'Utilities', value: 'utilities' },
+  { label: 'Entertainment', value: 'entertainment' },
+  { label: 'Shopping', value: 'shopping' },
+  { label: 'Health', value: 'health' },
+  { label: 'Education', value: 'education' },
+  { label: 'Travel', value: 'travel' },
+  { label: 'Other', value: 'other' }
+];
 
 const NewExpenseScreen = ({ navigation, route }) => {
   const editingExpense = route.params?.expense;
@@ -35,6 +48,7 @@ const NewExpenseScreen = ({ navigation, route }) => {
     return new Date();
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const formatDate = (date) => {
@@ -74,11 +88,9 @@ const NewExpenseScreen = ({ navigation, route }) => {
 
       if (isEditing) {
         await api.updateExpense(editingExpense.id, expenseData);
-        Alert.alert('Success', 'Expense updated successfully');
         navigation.goBack();
       } else {
         await api.createExpense(expenseData);
-        Alert.alert('Success', 'Expense added successfully');
         navigation.goBack();
       }
     } catch (error) {
@@ -131,26 +143,61 @@ const NewExpenseScreen = ({ navigation, route }) => {
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Category</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={category}
-                onValueChange={(itemValue) => setCategory(itemValue)}
-                style={styles.picker}
-              >
-                {/* general,food,transportation,utilities,entertainment,shopping,health,education,travel,other */}
-                <Picker.Item label="General" value="general" />
-                <Picker.Item label="Food" value="food" />
-                <Picker.Item label="Transportation" value="transportation" />
-                <Picker.Item label="Utilities" value="utilities" />
-                <Picker.Item label="Entertainment" value="entertainment" />
-                <Picker.Item label="Shopping" value="shopping" />
-                <Picker.Item label="Health" value="health" />
-                <Picker.Item label="Education" value="education" />
-                <Picker.Item label="Travel" value="travel" />
-                <Picker.Item label="Other" value="other" />
-              </Picker>
-            </View>
+            <Pressable
+              style={styles.pickerButton}
+              onPress={() => setShowCategoryPicker(true)}
+            >
+              <Text style={styles.pickerButtonText}>
+                {CATEGORIES.find(cat => cat.value === category)?.label || 'Select Category'}
+              </Text>
+              <Icon name="chevron-down" size={20} color="#666" />
+            </Pressable>
           </View>
+
+          <Modal
+            visible={showCategoryPicker}
+            transparent={true}
+            animationType="slide"
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Category</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowCategoryPicker(false)}
+                    style={styles.closeButton}
+                  >
+                    <Icon name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView>
+                  {CATEGORIES.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.value}
+                      style={[
+                        styles.categoryOption,
+                        category === cat.value && styles.categoryOptionSelected
+                      ]}
+                      onPress={() => {
+                        setCategory(cat.value);
+                        setShowCategoryPicker(false);
+                      }}
+                    >
+                      <Text style={[
+                        styles.categoryOptionText,
+                        category === cat.value && styles.categoryOptionTextSelected
+                      ]}>
+                        {cat.label}
+                      </Text>
+                      {category === cat.value && (
+                        <Icon name="check" size={20} color="#007AFF" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Date</Text>
@@ -234,15 +281,67 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
-  pickerContainer: {
+  pickerButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    overflow: 'hidden',
   },
-  picker: {
-    height: 50,
+  pickerButtonText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  categoryOptionSelected: {
+    backgroundColor: '#F8F9FD',
+  },
+  categoryOptionText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  categoryOptionTextSelected: {
+    color: '#007AFF',
+    fontWeight: '500',
   },
   dateButton: {
     flexDirection: 'row',

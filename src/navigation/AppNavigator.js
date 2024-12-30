@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { View } from 'react-native';
 
 import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import NewTaskScreen from '../screens/NewTaskScreen';
 import ExpenseScreen from '../screens/ExpenseScreen';
@@ -126,6 +127,7 @@ const AppNavigator = () => {
         }}
       >
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen
           name="MainApp" 
         component={TabNavigator}

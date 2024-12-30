@@ -24,64 +24,45 @@ const HomeScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [userName, setUserName] = useState('');
-  const [activeTab, setActiveTab] = useState('tasks');
+  const [activeTaskTab, setActiveTaskTab] = useState('inProgress');
   const [expenses, setExpenses] = useState([]); 
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchTasks = async () => {
-    setIsLoading(true);
+  const fetchData = async () => {
     try {
-      const response = await api.getTasks();
-      setTasks(response);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to fetch tasks');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await api.getCategories();
-      // Add "All" category at the beginning
+      setIsLoading(true);
+      const [tasksResponse, categoriesResponse, expensesResponse] = await Promise.all([
+        api.getTasks(),
+        api.getCategories(),
+        api.getExpenses()
+      ]);
+      setTasks(tasksResponse);
       setCategories([
         { id: null, title: 'All Tasks' },
-        ...response
+        ...categoriesResponse
       ]);
+      setExpenses(expensesResponse);
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch categories');
-    }
-  };
-
-  const fetchExpenses = async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.getExpenses();
-      setExpenses(response);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to fetch expenses');
+      Alert.alert('Error', 'Failed to fetch data');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
   };
 
   useEffect(() => {
     loadUserName();
     const unsubscribe = navigation.addListener('focus', () => {
-      fetchTasks();
-      fetchCategories();
-      fetchExpenses();
+      fetchData();
     });
 
     return unsubscribe;
   }, [navigation]);
-
-  const onRefresh = async () => {
-    await fetchTasks();
-    await fetchCategories();
-    await fetchExpenses();
-  };
-
-  
 
   const loadUserName = async () => {
     try {
@@ -155,40 +136,32 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  const renderCategories = () => (
-    <View style={styles.categoryList}>
-      <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoryContainer}
-              contentContainerStyle={styles.categoryContent}
-            >
-      {categories.map((item) => (
-        <TouchableOpacity
-          key={item.id?.toString() || 'all'}
-          style={[
-            styles.categoryItem,
-            selectedCategory === item.id && styles.categoryItemActive,
-          ]}
-          onPress={() => setSelectedCategory(item.id)}
-        >
-          <Text
-            style={[
-              styles.categoryItemText,
-              selectedCategory === item.id && styles.categoryItemTextActive,
-            ]}
-          >
-            {item.title}
-          </Text>
-        </TouchableOpacity>
-      ))}
-     </ScrollView>
-    </View>
-  );
+  const getFilteredTasks = () => {
+    // First filter by category if one is selected
+    let filtered = selectedCategory 
+      ? tasks.filter(task => task.category_id === selectedCategory)
+      : tasks;
+    
+    // Then filter by status based on active tab
+    filtered = filtered.filter(task => 
+      activeTaskTab === 'inProgress' ? !task.status : task.status
+    );
 
-  const filteredTasks = tasks.filter(task => 
-    selectedCategory === null || task.category_id === selectedCategory
-  );
+    return filtered;
+  };
+
+  const getTaskCounts = () => {
+    const filteredTasks = selectedCategory 
+      ? tasks.filter(task => task.category_id === selectedCategory)
+      : tasks;
+
+    return {
+      inProgress: filteredTasks.filter(task => !task.status).length,
+      completed: filteredTasks.filter(task => task.status).length
+    };
+  };
+
+  const taskCount = getTaskCounts();
 
   const TaskCard = ({ task }) => {
     const handleStatusChange = async () => {
@@ -239,56 +212,58 @@ const HomeScreen = ({ navigation }) => {
     };
 
     return (
-      <View style={styles.taskCard}>
-        <View style={styles.taskHeader}>
-          <View style={styles.taskTitleContainer}>
-            <TouchableOpacity 
-              onPress={handleStatusChange}
-              style={styles.statusButton}
-            >
-              <View style={[styles.statusIndicator, task.status && styles.statusCompleted]} />
-            </TouchableOpacity>
-            <Text style={styles.taskTitle} numberOfLines={1}>
-              {task.title}
-            </Text>
+      <TouchableOpacity 
+        onPress={() => navigation.navigate('NewTask', { task, isEditing: true })}
+        activeOpacity={0.7}
+      >
+        <View style={[
+          styles.taskCard,
+          task.status && styles.taskCardCompleted
+        ]}>
+          <TouchableOpacity 
+            onPress={(e) => {
+              e.stopPropagation();
+              handleStatusChange();
+            }}
+            style={styles.statusButton}
+          >
+            <View style={[styles.statusCircle, task.status && styles.statusCircleCompleted]}>
+              {task.status && <Icon name="check" size={14} color="#FFFFFF" />}
+            </View>
+          </TouchableOpacity>
+          <View style={styles.taskContent}>
+            <Text style={[
+              styles.taskTitle,
+              task.status && styles.taskTitleCompleted
+            ]}>{task.title}</Text>
+            <Text style={[
+              styles.taskDescription,
+              task.status && styles.taskDescriptionCompleted
+            ]}>{task.description}</Text>
+            <View style={styles.taskMeta}>
+              <Text style={[
+                styles.taskDate,
+                task.status && styles.taskDateCompleted
+              ]}>{new Date(task.due_date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })}</Text>
+            </View>
           </View>
           <View style={styles.taskActions}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('NewTask', { task, isEditing: true })}
-              style={styles.actionButton}
-            >
-              <Icon name="pencil" size={18} color="#4169E1" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleDelete}
-              style={styles.actionButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
+              style={styles.deleteButton}
             >
               <Icon name="trash-can-outline" size={18} color="#FF3B30" />
             </TouchableOpacity>
           </View>
         </View>
-        
-        <Text style={styles.taskDate}>
-            <Icon name="calendar" size={14} color="#666" style={styles.dateIcon} />
-            {`${new Date(task.due_date).toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })}, ${new Date(task.due_date).toLocaleTimeString('en-GB', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true, // Ensures AM/PM format
-            })}`}
-          </Text>
-
-
-        
-        {task.description ? (
-          <Text style={styles.taskDescription} numberOfLines={2}>
-            {task.description}
-          </Text>
-        ) : null}
-      </View>
+      </TouchableOpacity>
     );
   };
  
@@ -298,63 +273,137 @@ const HomeScreen = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FD" />
       
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Welcome back,</Text>
-          <Text style={styles.userName}>{userName}</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.userSection}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {userName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.welcomeText}>Welcome back,</Text>
+              <Text style={styles.userName}>{userName}</Text>
+            </View>
+          </View>
+          <TouchableOpacity 
+            onPress={handleLogout}
+            style={styles.logoutButton}
+          >
+            <Icon name="logout" size={22} color="#FF3B30" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Icon name="logout" size={24} color="#FF3B30" />
-        </TouchableOpacity>
+
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{taskCount.inProgress}</Text>
+            <Text style={styles.statLabel}>In Progress</Text>
+          </View>
+          <View style={[styles.statItem, styles.statItemBorder]}>
+            <Text style={styles.statNumber}>{taskCount.completed}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{tasks.length}</Text>
+            <Text style={styles.statLabel}>Total Tasks</Text>
+          </View>
+        </View>
       </View>
 
-      {renderCategories()}
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
-      }
-      >
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleContainer}>
-              <View style={[styles.sectionDot, { backgroundColor: '#4169E1' }]} />
-              <Text style={styles.sectionTitle}>
-                In Progress ({filteredTasks.filter(t => !t.status).length})
-              </Text>
-            </View>
-          </View>
-          
-          {filteredTasks
-            .filter(task => !task.status)
-            .map(task => (
-              <TaskCard key={task.id} task={task} />
-            ))}
+      <View style={styles.mainCard}>
+        <View style={styles.categorySection}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoryScroll}
+          >
+            {categories.map(category => (
+              <TouchableOpacity
+              key={category.id}
+              style={[
+                styles.categoryItem,
+                selectedCategory === category.id && styles.categoryItemActive
+              ]}
+              onPress={() => setSelectedCategory(category.id)}
+            >
+              <Text style={[
+                styles.categoryText,
+                selectedCategory === category.id && styles.categoryTextActive
+              ]}>{category.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleContainer}>
-              <View style={[styles.sectionDot, { backgroundColor: '#00C48C' }]} />
-              <Text style={styles.sectionTitle}>
-                Completed ({filteredTasks.filter(t => t.status).length})
-              </Text>
-            </View>
-          </View>
-          
-          {filteredTasks
-            .filter(task => task.status)
-            .map(task => (
-              <TaskCard key={task.id} task={task} />
-            ))}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTaskTab === 'inProgress' && styles.activeTab
+            ]}
+            onPress={() => setActiveTaskTab('inProgress')}
+          >
+            <Text style={[
+              styles.tabText,
+              activeTaskTab === 'inProgress' && styles.activeTabText
+            ]}>
+              In Progress ({taskCount.inProgress})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTaskTab === 'completed' && styles.activeTab
+            ]}
+            onPress={() => setActiveTaskTab('completed')}
+          >
+            <Text style={[
+              styles.tabText,
+              activeTaskTab === 'completed' && styles.activeTabText
+            ]}>
+              Completed ({taskCount.completed})
+            </Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
+
+        <ScrollView
+          contentContainerStyle={styles.taskList}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+            />
+          }
+        >
+          {isLoading ? (
+            <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
+          ) : getFilteredTasks().length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {activeTaskTab === 'inProgress' 
+                  ? 'No tasks in progress' 
+                  : 'No completed tasks'}
+              </Text>
+              {selectedCategory && (
+                <Text style={styles.emptySubText}>
+                  Try selecting a different category
+                </Text>
+              )}
+            </View>
+          ) : (
+            getFilteredTasks().map(task => (
+              <TaskCard key={task.id} task={task} />
+            ))
+          )}
+        </ScrollView>
+      </View>
 
       <TouchableOpacity
-          style={styles.fab}
+        style={styles.addButton}
         onPress={() => navigation.navigate('NewTask')}
       >
-        <Ionicons name="add" size={24} color="white" />
-      </TouchableOpacity> 
+        <Ionicons name="add" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -364,203 +413,280 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F9FD',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FD',
-  },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  greeting: {
-    fontSize: 13,
-    color: '#666',
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  logoutButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingTop: 20,
+    paddingBottom: 15,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
     elevation: 5,
   },
-  categoryList: {
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  userSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  userInfo: {
+    justifyContent: 'center',
+  },
+  welcomeText: {
+    fontSize: 13,
+    color: '#8E8E93',
+    marginBottom: 4,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  logoutButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    gap: 8,
+    paddingTop: 10,
   },
-  categoryItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: 'white',
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statItemBorder: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#F2F2F7',
+    marginHorizontal: 15,
+    paddingHorizontal: 15,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#8E8E93',
+  },
+  mainCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    margin: 16,
+    borderRadius: 24,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 3,
+    elevation: 5,
   },
-  fab: {
+  categoryScroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  categoryItem: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  categoryItemActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  categoryText: {
+    fontSize: 15,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  categoryTextActive: {
+    color: '#FFFFFF',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    marginHorizontal: 4,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+  },
+  activeTab: {
+    backgroundColor: '#007AFF',
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#8E8E93',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+  },
+  taskList: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  taskCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F2F2F7',
+  },
+  taskCardCompleted: {
+    borderLeftColor: '#34C759',
+    backgroundColor: '#F8F8F8',
+  },
+  taskContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  taskTitleCompleted: {
+    color: '#8E8E93',
+  },
+  taskDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  taskDescriptionCompleted: {
+    color: '#8E8E93',
+  },
+  taskDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+  taskDateCompleted: {
+    color: '#C7C7CC',
+  },
+  taskMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFF1F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  statusButton: {
+    padding: 8,
+    marginRight: 4,
+  },
+  statusCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  statusCircleCompleted: {
+    backgroundColor: '#34C759',
+    borderColor: '#34C759',
+  },
+  addButton: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
-    backgroundColor: '#2196F3',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#007AFF',
     width: 56,
     height: 56,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowColor: '#007AFF',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
-  categoryItemActive: {
-    backgroundColor: '#4169E1',
-    borderColor: '#4169E1',
+  loader: {
+    marginTop: 40,
   },
-  categoryItemText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  categoryItemTextActive: {
-    color: 'white',
-  },
-  content: {
+  emptyContainer: {
     flex: 1,
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sectionDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  createButton: {
-    backgroundColor: '#4169E1',
-    marginHorizontal: 20,
-    marginVertical: 16,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  createButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  taskCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  taskHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  taskTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    paddingTop: 40,
   },
-  statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FF3B30',
-  },
-  statusCompleted: {
-    backgroundColor: '#00C48C',
-  },
-  taskTitle: {
+  emptyText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  taskActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  taskDate: {
-    fontSize: 14,
-    color: '#666',
+    color: '#8E8E93',
+    textAlign: 'center',
     marginBottom: 8,
   },
-  dateIcon: {
-    marginRight: 4,
-  },
-  taskDescription: {
+  emptySubText: {
     fontSize: 14,
-    color: '#666',
+    color: '#C7C7CC',
+    textAlign: 'center',
   },
 });
 

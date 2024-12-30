@@ -7,13 +7,13 @@ import { Alert } from 'react-native';
 
 const Tab = createMaterialTopTabNavigator();
 
-const TabScreen = ({ children }) => (
+const TabScreen = ({ children, navigation }) => (
   <SafeAreaView style={styles.container}>
     {children}
   </SafeAreaView>
 );
 
-const ExpenseOverview = () => {
+const ExpenseOverview = ({ navigation }) => {
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,11 +37,17 @@ const ExpenseOverview = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchDashboardData();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   if (isLoading) {
     return (
-      <TabScreen>
+      <TabScreen navigation={navigation}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2196F3" />
         </View>
@@ -50,7 +56,7 @@ const ExpenseOverview = () => {
   }
 
   return (
-    <TabScreen>
+    <TabScreen navigation={navigation}>
       <ScrollView 
         style={styles.scrollView}
         refreshControl={
@@ -160,7 +166,7 @@ const ExpensesList = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <TabScreen>
+      <TabScreen navigation={navigation}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2196F3" />
         </View>
@@ -169,7 +175,7 @@ const ExpensesList = ({ navigation }) => {
   }
 
   return (
-    <TabScreen>
+    <TabScreen navigation={navigation}>
       <ScrollView 
         style={styles.scrollView}
         refreshControl={
@@ -210,7 +216,7 @@ const ExpensesList = ({ navigation }) => {
   );
 };
 
-const CategoriesTab = () => {
+const CategoriesTab = ({ navigation }) => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -234,11 +240,11 @@ const CategoriesTab = () => {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [navigation]);
 
   if (isLoading) {
     return (
-      <TabScreen>
+      <TabScreen navigation={navigation}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2196F3" />
         </View>
@@ -247,7 +253,7 @@ const CategoriesTab = () => {
   }
 
   return (
-    <TabScreen>
+    <TabScreen navigation={navigation}>
       <ScrollView 
         style={styles.scrollView}
         refreshControl={
@@ -265,18 +271,39 @@ const CategoriesTab = () => {
   );
 };
 
-const ExpenseScreen = () => {
+const ExpenseScreen = ({ navigation }) => {
+  const [refresh, setRefresh] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Force refresh all tabs by updating the key
+      setRefresh(prev => prev + 1);
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   return (
     <SafeAreaView style={styles.container}>
       <Tab.Navigator
+        key={refresh}
         screenOptions={{
           tabBarLabelStyle: styles.tabLabel,
           tabBarStyle: styles.tabBar,
           tabBarIndicatorStyle: styles.tabIndicator,
         }}>
-        <Tab.Screen name="Overview" component={ExpenseOverview} />
-        <Tab.Screen name="Expenses" component={ExpensesList} />
-        <Tab.Screen name="Categories" component={CategoriesTab} />
+        <Tab.Screen 
+          name="Overview" 
+          component={ExpenseOverview}
+        />
+        <Tab.Screen 
+          name="Expenses" 
+          component={ExpensesList}
+        />
+        <Tab.Screen 
+          name="Categories" 
+          component={CategoriesTab}
+        />
       </Tab.Navigator>
     </SafeAreaView>
   );

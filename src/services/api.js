@@ -196,6 +196,36 @@ const api = {
       method: 'DELETE',
     });
   },
+
+  register: async (data) => {
+    try {
+      const response = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Registration failed');
+      }
+
+      // Save auth token
+      if (result.token) {
+        await setAuthToken(result.token);
+        await AsyncStorage.setItem('userName', result.name);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw new Error(error.message || 'Registration failed');
+    }
+  },
 };
 
 export default api;
