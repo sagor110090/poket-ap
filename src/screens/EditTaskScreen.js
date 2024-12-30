@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,13 +20,28 @@ const EditTaskScreen = ({ navigation, route }) => {
   const { task } = route.params;
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
-  const [category, setCategory] = useState(task.category);
+  const [categoryId, setCategoryId] = useState(task.category_id?.toString());
+  const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [titleError, setTitleError] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date(task.dueDate));
+  const [selectedDate, setSelectedDate] = useState(new Date(task.due_date));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [mode, setMode] = useState('date');
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.getCategories();
+      setCategories(response);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      Alert.alert('Error', 'Failed to load categories');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -37,15 +52,18 @@ const EditTaskScreen = ({ navigation, route }) => {
     setIsLoading(true);
 
     try {
+      const formattedDate = selectedDate.toISOString().slice(0, 19).replace('T', ' ');
+      
       await api.updateTask(task.id, {
         title,
         description,
-        category,
-        dueDate: selectedDate.toISOString(),
+        category_id: categoryId,
+        due_date: formattedDate,
       });
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', 'Failed to update task');
+      console.error('Task update error:', error);
+      Alert.alert('Error', `Failed to update task: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -173,20 +191,20 @@ const EditTaskScreen = ({ navigation, route }) => {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Category</Text>
               <View style={styles.categoryContainer}>
-                {['Work', 'Personal', 'Study'].map((cat) => (
+                {categories.map((cat) => (
                   <TouchableOpacity
-                    key={cat}
+                    key={cat.id}
                     style={[
                       styles.categoryButton,
-                      category === cat && styles.categoryButtonActive
+                      categoryId === cat.id.toString() && styles.categoryButtonActive
                     ]}
-                    onPress={() => setCategory(cat)}
+                    onPress={() => setCategoryId(cat.id.toString())}
                   >
                     <Text style={[
                       styles.categoryButtonText,
-                      category === cat && styles.categoryButtonTextActive
+                      categoryId === cat.id.toString() && styles.categoryButtonTextActive
                     ]}>
-                      {cat}
+                      {cat.title}
                     </Text>
                   </TouchableOpacity>
                 ))}

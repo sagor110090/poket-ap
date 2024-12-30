@@ -19,13 +19,31 @@ import ScreenHeader from '../components/ScreenHeader';
 const NewTaskScreen = ({ navigation }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Work');
+  const [categoryId, setCategoryId] = useState('');
+  const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [titleError, setTitleError] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [mode, setMode] = useState('date');
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.getCategories();
+      setCategories(response);
+      if (response.length > 0) {
+        setCategoryId(response[0].id);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      Alert.alert('Error', 'Failed to load categories');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -36,15 +54,19 @@ const NewTaskScreen = ({ navigation }) => {
     setIsLoading(true);
 
     try {
+      // Format the date in YYYY-MM-DD HH:mm:ss format
+      const formattedDate = selectedDate.toISOString().slice(0, 19).replace('T', ' ');
+      
       await api.createTask({
         title,
         description,
-        category,
-        dueDate: selectedDate.toISOString(),
+        category_id: categoryId,
+        due_date: formattedDate, // Changed dueDate to due_date and using formatted date
       });
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', 'Failed to create task');
+      console.error('Task creation error:', error);
+      Alert.alert('Error', `Failed to create task: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -142,20 +164,20 @@ const NewTaskScreen = ({ navigation }) => {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Category</Text>
               <View style={styles.categoryContainer}>
-                {['Work', 'Personal', 'Study'].map((cat) => (
+                {categories.map((cat) => (
                   <TouchableOpacity
-                    key={cat}
+                    key={cat.id}
                     style={[
                       styles.categoryButton,
-                      category === cat && styles.categoryButtonActive
+                      categoryId === cat.id && styles.categoryButtonActive
                     ]}
-                    onPress={() => setCategory(cat)}
+                    onPress={() => setCategoryId(cat.id)}
                   >
                     <Text style={[
                       styles.categoryButtonText,
-                      category === cat && styles.categoryButtonTextActive
+                      categoryId === cat.id && styles.categoryButtonTextActive
                     ]}>
-                      {cat}
+                      {cat.title}
                     </Text>
                   </TouchableOpacity>
                 ))}

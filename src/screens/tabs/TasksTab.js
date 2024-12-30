@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, ActivityIndicator, Pressable, Text, ScrollView,SafeAreaView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  ActivityIndicator, 
+  RefreshControl,
+  ScrollView
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import api from '../../services/api';
 import TaskCard from '../../components/TaskCard';
+import api from '../../services/api';
 
 const TasksTab = ({ navigation }) => {
   const [tasks, setTasks] = useState([]);
@@ -13,9 +21,8 @@ const TasksTab = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
-  // Fetch tasks on initial load
   useEffect(() => {
-    fetchTasks();
+    fetchCategories();
   }, []);
 
   // Refresh tasks when screen comes into focus
@@ -25,220 +32,210 @@ const TasksTab = ({ navigation }) => {
     }, [])
   );
 
+  const fetchCategories = async () => {
+    try {
+      const response = await api.getCategories();
+      setCategories(response);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
   const fetchTasks = async () => {
     try {
       const response = await api.getTasks();
       setTasks(response || []);
-      
-      // Extract unique categories
-      const uniqueCategories = Array.from(new Set(
-        (response || [])
-          .map(task => task.category?.title || 'Uncategorized')
-      ));
-      setCategories(['all', ...uniqueCategories]);
     } catch (error) {
       console.error('Error fetching tasks:', error);
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchTasks();
-    setRefreshing(false);
-  };
-
   const handleToggleStatus = async (task) => {
+    setUpdatingTaskId(task.id);
     try {
-      setUpdatingTaskId(task.id);
-      const newStatus = !task.status;
+      // Convert boolean to string for the API
+      const newStatus = task.status ? 'pending' : 'completed';
+      await api.updateTaskStatus(task.id, newStatus);
       
-      await api.updateTaskStatus(task.id, {
-        status: Boolean(newStatus)
-      });
-      
+      // Update the task in the local state immediately
       setTasks(currentTasks => 
         currentTasks.map(t => 
-          t.id === task.id 
-            ? { ...t, status: Boolean(newStatus) }
-            : t
+          t.id === task.id ? { ...t, status: !t.status } : t
         )
       );
-    } catch (error) {
-      console.error('Update task status error:', error);
+      
+      // Refresh the list to ensure sync with server
       await fetchTasks();
+    } catch (error) {
+      console.error('Error updating task status:', error);
     } finally {
       setUpdatingTaskId(null);
     }
   };
 
-  const renderEmptyList = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="checkbox-outline" size={64} color="#CCC" />
-      <Text style={styles.emptyText}>No tasks yet</Text>
-      <Text style={styles.emptySubText}>Tap the + button to add your first task</Text>
-    </View>
-  );
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchTasks();
+  }, []);
+
+  const getFilteredTasks = () => {
+    if (selectedCategory === 'all') return tasks;
+    return tasks.filter(task => task.category_id.toString() === selectedCategory);
+  };
 
   const renderTask = ({ item }) => (
     <TaskCard
       task={item}
       onPress={() => navigation.navigate('EditTask', { task: item })}
-      onToggleStatus={handleToggleStatus}
+      onToggleStatus={() => handleToggleStatus(item)}
       updatingTaskId={updatingTaskId}
     />
   );
 
-  const getFilteredTasks = () => {
-    if (selectedCategory === 'all') return tasks;
-    return tasks.filter(task => 
-      (task.category?.title || 'Uncategorized') === selectedCategory
-    );
-  };
-
-  const renderCategoryChip = (category) => (
-    <Pressable
-      key={category}
-      style={[
-        styles.categoryChip,
-        selectedCategory === category && styles.selectedCategoryChip
-      ]}
-      onPress={() => setSelectedCategory(category)}
-    >
-      <Text style={[
-        styles.categoryChipText,
-        selectedCategory === category && styles.selectedCategoryChipText
-      ]}>
-        {category === 'all' ? 'All Tasks' : category}
-      </Text>
-    </Pressable>
+  const renderEmptyList = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No tasks found</Text>
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => navigation.navigate('NewTask')}
+      >
+        <Text style={styles.addButtonText}>Add New Task</Text>
+      </TouchableOpacity>
+    </View>
   );
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2196F3" />
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
 
   return (
-    <View style={styles.mainContainer}>
-      <View style={styles.container}>
-      <SafeAreaView >
-
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          <View style={styles.categoriesWrapper}>
-            {categories.map(renderCategoryChip)}
-          </View>
+    <View style={styles.container}>
+      <View style={styles.categoryContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity
+            style={[
+              styles.categoryButton,
+              selectedCategory === 'all' && styles.categoryButtonActive
+            ]}
+            onPress={() => setSelectedCategory('all')}
+          >
+            <Text style={[
+              styles.categoryButtonText,
+              selectedCategory === 'all' && styles.categoryButtonTextActive
+            ]}>
+              All
+            </Text>
+          </TouchableOpacity>
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={[
+                styles.categoryButton,
+                selectedCategory === category.id.toString() && styles.categoryButtonActive
+              ]}
+              onPress={() => setSelectedCategory(category.id.toString())}
+            >
+              <Text style={[
+                styles.categoryButtonText,
+                selectedCategory === category.id.toString() && styles.categoryButtonTextActive
+              ]}>
+                {category.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
-        </SafeAreaView>
-
-        <FlatList
-          data={getFilteredTasks()}
-          renderItem={renderTask}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={renderEmptyList}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-        />
       </View>
 
-      <Pressable
+      <FlatList
+        data={getFilteredTasks()}
+        renderItem={renderTask}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={renderEmptyList}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#007AFF']}
+          />
+        }
+      />
+
+      <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('NewTask')}
       >
-        <Ionicons name="add" size={24} color="white" />
-      </Pressable>
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#F5F6F8',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#F5F6F8',
+    backgroundColor: '#F8F9FD',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  listContainer: {
+    flexGrow: 1,
+    padding: 16,
+  },
+  categoryContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+    marginRight: 8,
+  },
+  categoryButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  categoryButtonText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  categoryButtonTextActive: {
+    color: '#fff',
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingVertical: 32,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#666',
-    marginTop: 16,
+    marginBottom: 16,
   },
-  emptySubText: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
+  addButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#007AFF',
+    borderRadius: 20,
   },
-  categoriesContainer: {
-    height: 56,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  categoriesContent: {
-    paddingHorizontal: 8,
-  },
-  categoriesWrapper: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  categoryChip: {
-    height: 32,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    backgroundColor: '#F5F6F8',
-    marginHorizontal: 4,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedCategoryChip: {
-    backgroundColor: '#2196F3',
-  },
-  categoryChipText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  selectedCategoryChipText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  listContent: {
-    padding: 16,
-    flexGrow: 1,
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
   },
   fab: {
     position: 'absolute',
@@ -247,15 +244,21 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    zIndex: 999,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowRadius: 3.84,
+  },
+  fabText: {
+    fontSize: 24,
+    color: '#fff',
   },
 });
 

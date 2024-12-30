@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 
 const AnalyticsTab = () => {
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
+  // Refresh analytics when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchAnalytics();
+    }, [])
+  );
 
   const fetchAnalytics = async () => {
     try {
@@ -33,13 +37,25 @@ const AnalyticsTab = () => {
 
   const calculateStats = (tasks) => {
     const total = tasks.length;
-    const completed = tasks.filter(task => task.status === true).length;
-    const pending = total - completed;
+    const completed = tasks.filter(task => task.status === 'completed').length;
+    const pending = tasks.filter(task => task.status === 'pending').length;
 
     // Group tasks by category
     const categories = tasks.reduce((acc, task) => {
       const categoryName = task.category?.title || 'Uncategorized';
-      acc[categoryName] = (acc[categoryName] || 0) + 1;
+      if (!acc[categoryName]) {
+        acc[categoryName] = {
+          total: 0,
+          completed: 0,
+          pending: 0
+        };
+      }
+      acc[categoryName].total++;
+      if (task.status === 'completed') {
+        acc[categoryName].completed++;
+      } else {
+        acc[categoryName].pending++;
+      }
       return acc;
     }, {});
 
@@ -106,13 +122,13 @@ const AnalyticsTab = () => {
       {Object.keys(analytics.categories).length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Category Distribution</Text>
-          {Object.entries(analytics.categories).map(([category, count], index) => (
+          {Object.entries(analytics.categories).map(([category, stats], index) => (
             <View key={index} style={styles.categoryRow}>
               <View style={styles.categoryInfo}>
                 <View style={[styles.categoryDot, { backgroundColor: getCategoryColor(index) }]} />
                 <Text style={styles.categoryName}>{category}</Text>
               </View>
-              <Text style={styles.categoryCount}>{count} tasks</Text>
+              <Text style={styles.categoryCount}>{stats.total} tasks ({stats.completed} completed, {stats.pending} pending)</Text>
             </View>
           ))}
         </View>

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 
 const ExpensesList = ({ navigation }) => {
@@ -16,18 +17,21 @@ const ExpensesList = ({ navigation }) => {
       console.error('Error fetching expenses:', error);
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchExpenses();
-    setRefreshing(false);
   };
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [navigation]);
+  // Refresh expenses when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchExpenses();
+    }, [])
+  );
 
   const handleEdit = (expense) => {
     navigation.navigate('NewExpense', { expense });
@@ -38,17 +42,14 @@ const ExpensesList = ({ navigation }) => {
       'Delete Expense',
       'Are you sure you want to delete this expense?',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
               await api.deleteExpense(expenseId);
-              await fetchExpenses();
+              await fetchExpenses(); // Refresh the list after deletion
             } catch (error) {
               Alert.alert('Error', error.message || 'Failed to delete expense');
             }
@@ -104,7 +105,7 @@ const ExpensesList = ({ navigation }) => {
         style={styles.fab}
         onPress={() => navigation.navigate('NewExpense')}
       >
-        <Ionicons name="add" size={24} color="white" />
+        <Ionicons name="add" size={24} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -150,15 +151,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  expenseActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   expenseAmount: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     marginRight: 12,
-  },
-  expenseActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   deleteButton: {
     padding: 4,
@@ -167,10 +168,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     bottom: 16,
-    backgroundColor: '#2196F3',
     width: 56,
     height: 56,
     borderRadius: 28,
+    backgroundColor: '#2196F3',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,

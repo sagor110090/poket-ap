@@ -32,12 +32,15 @@ const TaskCard = ({ task, onPress, onToggleStatus, updatingTaskId }) => {
     }
   };
 
-  const getStatusColor = (status) => {
-    return status ? '#4CAF50' : '#FFA000';
+  // Convert boolean status to string for display
+  const status = task.status ? 'completed' : 'pending';
+
+  const getStatusColor = (statusStr) => {
+    return statusStr === 'completed' ? '#4CAF50' : '#FFA000';
   };
 
-  const getStatusText = (status) => {
-    return status ? 'completed' : 'pending';
+  const getStatusText = (statusStr) => {
+    return statusStr === 'completed' ? 'completed' : 'pending';
   };
 
   return (
@@ -51,25 +54,25 @@ const TaskCard = ({ task, onPress, onToggleStatus, updatingTaskId }) => {
           onPress={() => onToggleStatus(task)}
           disabled={updatingTaskId === task.id}
         >
-          <View style={[styles.statusDot, { backgroundColor: getStatusColor(task.status) }]}>
-            {task.status && (
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor(status) }]}>
+            {status === 'completed' && (
               <Ionicons name="checkmark" size={12} color="white" />
             )}
           </View>
           <Text style={styles.taskStatus}>
-            {updatingTaskId === task.id ? 'Updating...' : getStatusText(task.status)}
+            {updatingTaskId === task.id ? 'Updating...' : getStatusText(status)}
           </Text>
         </Pressable>
       </View>
       <Text style={[
         styles.taskTitle,
-        task.status && styles.completedTaskTitle
+        status === 'completed' && styles.completedTaskTitle
       ]} numberOfLines={2}>
         {task.title || 'Untitled Task'}
       </Text>
       <Text style={[
         styles.taskDescription,
-        task.status && styles.completedTaskDescription
+        status === 'completed' && styles.completedTaskDescription
       ]} numberOfLines={2}>
         {task.description || 'No description'}
       </Text>
@@ -102,44 +105,43 @@ const styles = StyleSheet.create({
   },
   taskHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
   statusButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 4,
   },
   statusDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 8,
   },
   taskStatus: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
     textTransform: 'capitalize',
   },
   taskTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#333',
     marginBottom: 8,
   },
   completedTaskTitle: {
+    color: '#999',
     textDecorationLine: 'line-through',
-    color: '#888',
   },
   taskDescription: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   completedTaskDescription: {
-    textDecorationLine: 'line-through',
     color: '#999',
   },
   taskFooter: {
@@ -152,19 +154,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   taskDate: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
-    marginLeft: 4,
+    marginLeft: 6,
   },
   taskCategory: {
     backgroundColor: '#E3F2FD',
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
   categoryText: {
     fontSize: 12,
-    color: '#1976D2',
+    color: '#2196F3',
   },
 });
 

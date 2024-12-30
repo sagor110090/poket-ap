@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, SafeAreaView } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 
 const CategoriesTab = ({ navigation }) => {
@@ -15,18 +16,21 @@ const CategoriesTab = ({ navigation }) => {
       console.error('Error fetching categories:', error);
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchCategories();
-    setRefreshing(false);
   };
 
-  useEffect(() => {
-    fetchCategories();
-  }, [navigation]);
+  // Refresh categories when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchCategories();
+    }, [])
+  );
 
   if (isLoading) {
     return (
