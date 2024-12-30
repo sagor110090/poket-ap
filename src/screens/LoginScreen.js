@@ -70,7 +70,7 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <Icon name="checkbox-marked-circle-outline" size={80} color="#4169E1" />
-              <Text style={styles.logoText}>ToDo App</Text>
+              <Text style={styles.logoText}>Poket</Text>
             </View>
             <Text style={styles.title}>Welcome Back!</Text>
             <Text style={styles.subtitle}>

@@ -29,6 +29,9 @@ const HomeStack = () => {
     <Stack.Screen 
       name="NewTask" 
       component={NewTaskScreen}
+      options={{ 
+        headerShown: false, 
+    }}
     />
   </Stack.Navigator>
 );
@@ -58,15 +61,7 @@ const ExpenseStack = () => {
       name="NewExpense" 
       component={NewExpenseScreen}
       options={{ 
-          headerShown: true,
-          title: 'Add Expense',
-        headerStyle: {
-            backgroundColor: '#fff',
-        },
-        headerTintColor: '#333',
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
+          headerShown: false,
       }}
     />
   </Stack.Navigator>

@@ -140,7 +140,7 @@ const NewTaskScreen = ({ navigation, route }) => {
           <Icon name="arrow-left" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {isEditing ? 'Edit Task' : 'New Task ToDo'}
+          {isEditing ? 'Edit Task' : 'New Task '}
         </Text>
         <View style={{ width: 24 }}>
           <Text>{/* Empty text for layout balance */}</Text>
@@ -236,24 +236,22 @@ const NewTaskScreen = ({ navigation, route }) => {
               />
             )}
           </View>
+        <TouchableOpacity
+            style={styles.button}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>
+                {isEditing ? 'Update Task' : 'Create Task'}
+              </Text>
+            )}
+        </TouchableOpacity>
         </View>
       </ScrollView>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.button, styles.createButton, isLoading && styles.buttonDisabled]}
-          onPress={handleSave}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.createButtonText}>
-              {isEditing ? 'Update' : 'Create'}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 };
@@ -271,20 +269,22 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start', // Align items to the start of the row
     alignItems: 'center',
     padding: 16,
     backgroundColor: '#F8F9FD',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-  },
-  backButton: {
-    padding: 4,
+    backgroundColor: '#fff', 
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1A1A1A',
+    marginLeft: 12,
+  },
+  backButton: {
+    padding: 4,
   },
   content: {
     flex: 1,
@@ -364,25 +364,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1A1A1A',
   },
-  buttonContainer: {
-    padding: 16,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
   button: {
-    height: 56,
-    borderRadius: 12,
-    justifyContent: 'center',
+    backgroundColor: '#2196F3',
+    borderRadius: 8,
+    padding: 16,
     alignItems: 'center',
+    marginTop: 24,
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  createButton: {
-    backgroundColor: '#4169E1',
-  },
-  createButtonText: {
+  buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
