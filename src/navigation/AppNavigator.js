@@ -12,6 +12,7 @@ import HomeScreen from '../screens/HomeScreen';
 import NewTaskScreen from '../screens/NewTaskScreen';
 import ExpenseScreen from '../screens/ExpenseScreen';
 import NewExpenseScreen from '../screens/NewExpenseScreen';
+import EditTaskScreen from '../screens/EditTaskScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -33,6 +34,11 @@ const HomeStack = () => {
       options={{ 
         headerShown: false, 
     }}
+    />
+    <Stack.Screen
+      name="EditTask"
+      component={EditTaskScreen}
+      options={{ headerShown: false }}
     />
   </Stack.Navigator>
 );

@@ -1,21 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Alert,
-  StatusBar,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
   Dimensions,
+  Image,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as LocalAuthentication from 'expo-local-authentication';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import api from '../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -23,11 +25,70 @@ const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+  const [savedCredentials, setSavedCredentials] = useState(null);
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
 
+  useEffect(() => {
+    checkBiometricSupport();
+    loadSavedCredentials();
+    StatusBar.setBarStyle('dark-content');
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor('#F8F9FD');
+    }
+  }, []);
+
+  const checkBiometricSupport = async () => {
+    const compatible = await LocalAuthentication.hasHardwareAsync();
+    setIsBiometricSupported(compatible);
+  };
+
+  const loadSavedCredentials = async () => {
+    try {
+      const credentials = await AsyncStorage.getItem('savedCredentials');
+      if (credentials) {
+        setSavedCredentials(JSON.parse(credentials));
+      }
+    } catch (error) {
+      console.error('Error loading saved credentials:', error);
+    }
+  };
+
   const validateEmail = (email) => {
     return /\S+@\S+\.\S+/.test(email);
+  };
+
+  const handleBiometricAuth = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Login with Fingerprint',
+        disableDeviceFallback: true,
+      });
+
+      if (result.success && savedCredentials) {
+        setIsLoading(true);
+        try {
+          const response = await api.login(
+            savedCredentials.email,
+            savedCredentials.password
+          );
+          await AsyncStorage.setItem('token', response.token);
+          await AsyncStorage.setItem('userName', response.name);
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainApp' }],
+          });
+        } catch (error) {
+          Alert.alert('Error', error.message || 'Login failed');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Biometric authentication failed');
+    }
   };
 
   const handleLogin = async () => {
@@ -48,10 +109,20 @@ const LoginScreen = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      const response = await api.login(email, password);
-      // Store the name from API response
+      const response = await api.login(email.trim(), password);
+      await AsyncStorage.setItem('token', response.token);
       await AsyncStorage.setItem('userName', response.name);
-      navigation.replace('MainApp');
+      
+      // Save credentials for biometric login
+      await AsyncStorage.setItem('savedCredentials', JSON.stringify({
+        email: email.trim(),
+        password: password,
+      }));
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainApp' }],
+      });
     } catch (error) {
       Alert.alert('Error', error.message || 'Login failed');
     } finally {
@@ -61,7 +132,6 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FD" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -109,9 +179,19 @@ const LoginScreen = ({ navigation }) => {
                   placeholderTextColor="#999"
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   editable={!isLoading}
                 />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Icon
+                    name={showPassword ? 'eye-off' : 'eye'}
+                    size={24}
+                    color="#666"
+                  />
+                </TouchableOpacity>
               </View>
               {passwordError && (
                 <Text style={styles.errorText}>
@@ -131,6 +211,16 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.loginButtonText}>Sign In</Text>
               )}
             </TouchableOpacity>
+
+            {isBiometricSupported && savedCredentials && (
+              <TouchableOpacity
+                style={styles.biometricButton}
+                onPress={handleBiometricAuth}
+              >
+                <Icon name="fingerprint" size={24} color="#007AFF" />
+                <Text style={styles.biometricText}>Login with Fingerprint</Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.registerContainer}>
               <Text style={styles.registerText}>Don't have an account?</Text>
@@ -248,6 +338,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  biometricButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#F8F9FD',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  biometricText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
   registerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -263,6 +370,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 4,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingHorizontal: 16,
+    height: 56,
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1A1A1A',
   },
 });
 

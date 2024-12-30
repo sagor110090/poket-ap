@@ -149,7 +149,7 @@ const api = {
     try {
       return await apiRequest(`/tasks/${taskId}/status`, {
         method: 'PUT',
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: status === true }),
       });
     } catch (error) {
       console.error('Update task status error:', error);

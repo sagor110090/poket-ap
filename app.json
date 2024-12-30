@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.sagor110090.todoapp",
@@ -38,6 +38,10 @@
       "eas": {
         "projectId": "4751f394-1c3f-404f-9a17-0654f29213a1"
       }
+    },
+    "androidStatusBar": {
+      "translucent": true,
+      "backgroundColor": "#00000000"
     }
   }
 }

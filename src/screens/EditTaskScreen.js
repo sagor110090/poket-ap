@@ -17,15 +17,19 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../services/api';
 
-const NewTaskScreen = ({ navigation }) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+const EditTaskScreen = ({ navigation, route }) => {
+  const task = route.params?.task;
+
+  const [title, setTitle] = useState(task?.title || '');
+  const [description, setDescription] = useState(task?.description || '');
+  const [category, setCategory] = useState(task?.category_id?.toString() || '');
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingCategories, setIsFetchingCategories] = useState(true);
   const [titleError, setTitleError] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(
+    task?.due_date ? new Date(task.due_date) : new Date()
+  );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [mode, setMode] = useState('date');
@@ -42,7 +46,7 @@ const NewTaskScreen = ({ navigation }) => {
     try {
       const response = await api.getCategories();
       setCategories(response);
-      if (response && response.length > 0) {
+      if (!category && response && response.length > 0) {
         setCategory(response[0].id.toString());
       }
     } catch (error) {
@@ -88,7 +92,7 @@ const NewTaskScreen = ({ navigation }) => {
     }
   };
 
-  const handleCreateTask = async () => {
+  const handleUpdateTask = async () => {
     if (!title.trim()) {
       setTitleError(true);
       return;
@@ -97,18 +101,48 @@ const NewTaskScreen = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      await api.createTask({
+      await api.updateTask(task.id, {
         title: title.trim(),
         description: description.trim(),
         category_id: category,
         due_date: selectedDate.toISOString(),
+        status: task.status,
       });
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to create task');
+      Alert.alert('Error', error.message || 'Failed to update task');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDeleteTask = async () => {
+    Alert.alert(
+      'Delete Task',
+      'Are you sure you want to delete this task?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              await api.deleteTask(task.id);
+              navigation.goBack();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete task');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
@@ -124,18 +158,27 @@ const NewTaskScreen = ({ navigation }) => {
           >
             <Icon name="arrow-left" size={24} color="#1A1A1A" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>New Task</Text>
-          <TouchableOpacity
-            style={[styles.createButton, (!title.trim() || isLoading) && styles.createButtonDisabled]}
-            onPress={handleCreateTask}
-            disabled={!title.trim() || isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="white" size="small" />
-            ) : (
-              <Icon name="check" size={24} color="white" />
-            )}
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Edit Task</Text>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDeleteTask}
+              disabled={isLoading}
+            >
+              <Icon name="delete-outline" size={24} color="#FF3B30" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveButton, (!title.trim() || isLoading) && styles.saveButtonDisabled]}
+              onPress={handleUpdateTask}
+              disabled={!title.trim() || isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Icon name="check" size={24} color="white" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView
@@ -156,7 +199,6 @@ const NewTaskScreen = ({ navigation }) => {
                     setTitle(text);
                     setTitleError(false);
                   }}
-                  autoFocus
                   maxLength={100}
                 />
               </View>
@@ -274,7 +316,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A1A',
   },
-  createButton: {
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    padding: 8,
+    marginRight: 8,
+    borderRadius: 8,
+  },
+  saveButton: {
     backgroundColor: '#4169E1',
     width: 40,
     height: 40,
@@ -290,7 +341,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4.65,
     elevation: 8,
   },
-  createButtonDisabled: {
+  saveButtonDisabled: {
     backgroundColor: '#B0C4DE',
     shadowOpacity: 0,
     elevation: 0,
@@ -411,4 +462,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default NewTaskScreen;
+export default EditTaskScreen;
