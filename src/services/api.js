@@ -197,6 +197,24 @@ const api = {
     });
   },
 
+  // Category API endpoints
+  getExpenseCategories: async () => {
+    return await apiRequest('/expense-categories');
+  },
+
+  createExpenseCategory: async (name) => {
+    return await apiRequest('/expense-categories', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  deleteExpenseCategory: async (categoryId) => {
+    return await apiRequest(`/expense-categories/${categoryId}`, {
+      method: 'DELETE',
+    });
+  },
+
   register: async (data) => {
     try {
       const response = await fetch(`${API_URL}/register`, {

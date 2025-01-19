@@ -1,23 +1,29 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, StatusBar } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const ScreenHeader = ({ title, onBack, rightComponent }) => {
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={onBack}
-          style={styles.backButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.rightContainer}>
-          {rightComponent}
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <View style={styles.content}>
+        <View style={styles.leftContainer}>
+          {onBack && (
+            <TouchableOpacity 
+              onPress={onBack} 
+              style={styles.backButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Icon name="arrow-left" size={24} color="#000" />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
         </View>
+        {rightComponent && (
+          <View style={styles.rightContainer}>
+            {rightComponent}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -27,27 +33,36 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#eee',
+    paddingTop: Platform.OS === 'ios' ? 44 : StatusBar.currentHeight,
   },
-  header: {
+  content: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 16 : 16,
-    paddingBottom: 16,
-    backgroundColor: '#fff',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  leftContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
   },
   backButton: {
-    marginRight: 16,
+    padding: 12,
+    marginLeft: 4,
   },
   title: {
-    flex: 1,
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: '#000',
+    marginLeft: 4,
+    flex: 1,
   },
   rightContainer: {
-    marginLeft: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,27 +17,20 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../services/api';
 import ScreenHeader from '../components/ScreenHeader';
 
-const CATEGORIES = [
-  { label: 'General', value: 'general' },
-  { label: 'Food', value: 'food' },
-  { label: 'Transportation', value: 'transportation' },
-  { label: 'Utilities', value: 'utilities' },
-  { label: 'Entertainment', value: 'entertainment' },
-  { label: 'Shopping', value: 'shopping' },
-  { label: 'Health', value: 'health' },
-  { label: 'Education', value: 'education' },
-  { label: 'Travel', value: 'travel' },
-  { label: 'Other', value: 'other' }
-];
-
 const NewExpenseScreen = ({ navigation, route }) => {
   const editingExpense = route.params?.expense;
   const isEditing = !!editingExpense;
 
   const [title, setTitle] = useState(editingExpense?.title || '');
-  const [amount, setAmount] = useState(editingExpense?.amount?.toString() || '');
-  const [category, setCategory] = useState(editingExpense?.category || 'general');
+  const [amount, setAmount] = useState(
+    editingExpense?.amount
+      ? parseFloat(editingExpense.amount.replace(/,/g, '')).toString()
+      : ''
+  );
+  const [category, setCategory] = useState(editingExpense?.category || '');
+  const [categories, setCategories] = useState([]);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
   const [selectedDate, setSelectedDate] = useState(() => {
     if (editingExpense?.expense_date) {
       const [month, day, year] = editingExpense.expense_date.replace(',', '').split(' ');
@@ -49,8 +42,36 @@ const NewExpenseScreen = ({ navigation, route }) => {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCategoryLoading, setIsCategoryLoading] = useState(true);
   const [titleError, setTitleError] = useState(false);
   const [amountError, setAmountError] = useState(false);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await api.getExpenseCategories();
+      const validCategories = data.filter(cat => typeof cat === 'string' && cat.trim());
+      setCategories(validCategories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      Alert.alert('Error', 'Failed to load categories');
+    } finally {
+      setIsCategoryLoading(false);
+    }
+  };
+
+  const handleAddCustomCategory = () => {
+    if (!customCategory.trim()) return;
+    
+    const newCategory = customCategory.trim();
+    setCategories(prevCategories => [...prevCategories, newCategory]);
+    setCategory(newCategory);
+    setCustomCategory('');
+    setShowCategoryPicker(false);
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -59,6 +80,10 @@ const NewExpenseScreen = ({ navigation, route }) => {
     }
     if (!amount.trim() || isNaN(parseFloat(amount))) {
       setAmountError(true);
+      return;
+    }
+    if (!category) {
+      Alert.alert('Error', 'Please select a category');
       return;
     }
 
@@ -76,11 +101,10 @@ const NewExpenseScreen = ({ navigation, route }) => {
 
       if (isEditing) {
         await api.updateExpense(editingExpense.id, expenseData);
-        navigation.goBack();
       } else {
         await api.createExpense(expenseData);
-        navigation.goBack();
       }
+      navigation.goBack();
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to save expense');
     } finally {
@@ -199,8 +223,10 @@ const NewExpenseScreen = ({ navigation, route }) => {
                 onPress={() => setShowCategoryPicker(true)}
               >
                 <Icon name="tag" size={24} color="#666" />
-                <Text style={styles.categoryText}>{CATEGORIES.find(cat => cat.value === category)?.label || 'Select Category'}</Text>
-                <Icon name="chevron-right" size={24} color="#666" />
+                <Text style={styles.categoryButtonText}>
+                  {category || 'Select Category'}
+                </Text>
+                <Icon name="chevron-down" size={24} color="#666" />
               </TouchableOpacity>
             </View>
 
@@ -230,43 +256,82 @@ const NewExpenseScreen = ({ navigation, route }) => {
 
       <Modal
         visible={showCategoryPicker}
-        transparent={true}
+        transparent
         animationType="slide"
         onRequestClose={() => setShowCategoryPicker(false)}
       >
-        <View style={styles.modalContainer}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Category</Text>
-              <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
+              <TouchableOpacity 
+                onPress={() => setShowCategoryPicker(false)}
+                style={styles.closeButton}
+              >
                 <Icon name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.categoryList}>
-              {CATEGORIES.map((cat) => (
-                <TouchableOpacity
-                  key={cat.value}
-                  style={[
-                    styles.categoryItem,
-                    category === cat.value && styles.selectedCategoryItem
-                  ]}
-                  onPress={() => {
-                    setCategory(cat.value);
-                    setShowCategoryPicker(false);
-                  }}
-                >
-                  <Text style={[
-                    styles.categoryItemText,
-                    category === cat.value && styles.selectedCategoryItemText
-                  ]}>
-                    {cat.label}
-                  </Text>
-                  {category === cat.value && (
-                    <Icon name="check" size={20} color="#2196F3" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+
+            <View style={styles.customCategoryContainer}>
+              <TextInput
+                style={styles.customCategoryInput}
+                placeholder="Enter new category"
+                value={customCategory}
+                onChangeText={setCustomCategory}
+              />
+              <TouchableOpacity 
+                style={[
+                  styles.addCustomButton,
+                  !customCategory.trim() && styles.addCustomButtonDisabled
+                ]}
+                onPress={handleAddCustomCategory}
+                disabled={!customCategory.trim()}
+              >
+                <Text style={styles.addCustomButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.categoryDivider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or select existing</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {isCategoryLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#2196F3" />
+              </View>
+            ) : categories.length === 0 ? (
+              <View style={styles.noDataContainer}>
+                <Text style={styles.noDataText}>No categories available</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.categoriesList}>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={`category-${cat}`}
+                    style={[
+                      styles.categoryOption,
+                      category === cat && styles.selectedCategory,
+                    ]}
+                    onPress={() => {
+                      setCategory(cat);
+                      setShowCategoryPicker(false);
+                    }}
+                  >
+                    <Text style={[
+                      styles.categoryOptionText,
+                      category === cat && styles.selectedCategoryText,
+                    ]}>
+                      {cat}
+                    </Text>
+                    {category === cat && (
+                      <Icon name="check" size={20} color="#2196F3" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -329,9 +394,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   deleteButton: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    backgroundColor: '#FFF0F0',
   },
   saveButton: {
     backgroundColor: '#2196F3',
@@ -346,7 +409,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
-  categoryText: {
+  categoryButtonText: {
     flex: 1,
     fontSize: 16,
     color: '#333',
@@ -368,15 +431,15 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 12,
   },
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     maxHeight: '80%',
   },
   modalHeader: {
@@ -385,35 +448,92 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E1E1E1',
+    borderBottomColor: '#eee',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
   },
-  categoryList: {
-    padding: 16,
+  closeButton: {
+    padding: 4,
   },
-  categoryItem: {
+  customCategoryContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  customCategoryInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+  },
+  addCustomButton: {
+    backgroundColor: '#2196F3',
     paddingHorizontal: 16,
     borderRadius: 8,
-    marginBottom: 8,
+    justifyContent: 'center',
   },
-  selectedCategoryItem: {
+  addCustomButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  addCustomButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  categoryDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#eee',
+  },
+  dividerText: {
+    marginHorizontal: 8,
+    color: '#666',
+    fontSize: 12,
+  },
+  categoriesList: {
+    padding: 8,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 4,
+  },
+  selectedCategory: {
     backgroundColor: '#E3F2FD',
   },
-  categoryItemText: {
+  categoryOptionText: {
     fontSize: 16,
     color: '#333',
   },
-  selectedCategoryItemText: {
+  selectedCategoryText: {
     color: '#2196F3',
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noDataContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noDataText: {
+    color: '#666',
+    fontSize: 16,
   },
 });
 
