@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import api from '../../services/api';
+import api from '../../../services/api';
 
 const ExpenseOverview = ({ navigation }) => {
   const [dashboardData, setDashboardData] = useState(null);

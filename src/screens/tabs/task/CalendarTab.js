@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, FlatList, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import api from '../../services/api';
-import TaskCard from '../../components/TaskCard';
+import api from '../../../services/api';
+import TaskCard from '../../../components/TaskCard';
 
 const CalendarTab = ({ navigation }) => {
   const [tasks, setTasks] = useState([]);
@@ -79,24 +79,23 @@ const CalendarTab = ({ navigation }) => {
   };
 
   const handleToggleStatus = async (task) => {
+    setUpdatingTaskId(task.id);
     try {
-      setUpdatingTaskId(task.id);
-      const newStatus = !task.status;
+      // Convert boolean to string for the API
+      const newStatus = task.status ? 'pending' : 'completed';
+      await api.updateTaskStatus(task.id, newStatus);
       
-      await api.updateTaskStatus(task.id, {
-        status: Boolean(newStatus)
-      });
-      
+      // Update the task in the local state immediately
       setTasks(currentTasks => 
         currentTasks.map(t => 
-          t.id === task.id 
-            ? { ...t, status: Boolean(newStatus) }
-            : t
+          t.id === task.id ? { ...t, status: !t.status } : t
         )
       );
-    } catch (error) {
-      console.error('Update task status error:', error);
+      
+      // Refresh the list to ensure sync with server
       await fetchTasks();
+    } catch (error) {
+      console.error('Error updating task status:', error);
     } finally {
       setUpdatingTaskId(null);
     }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import api from '../../services/api';
+import api from '../../../services/api';
 
 const AnalyticsTab = () => {
   const [analytics, setAnalytics] = useState(null);

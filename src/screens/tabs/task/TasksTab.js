@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  ActivityIndicator, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
   RefreshControl,
   ScrollView
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import TaskCard from '../../components/TaskCard';
-import api from '../../services/api';
+import TaskCard from '../../../components/TaskCard';
+import api from '../../../services/api';
 
 const TasksTab = ({ navigation }) => {
   const [tasks, setTasks] = useState([]);
@@ -59,14 +59,14 @@ const TasksTab = ({ navigation }) => {
       // Convert boolean to string for the API
       const newStatus = task.status ? 'pending' : 'completed';
       await api.updateTaskStatus(task.id, newStatus);
-      
+
       // Update the task in the local state immediately
-      setTasks(currentTasks => 
-        currentTasks.map(t => 
+      setTasks(currentTasks =>
+        currentTasks.map(t =>
           t.id === task.id ? { ...t, status: !t.status } : t
         )
       );
-      
+
       // Refresh the list to ensure sync with server
       await fetchTasks();
     } catch (error) {

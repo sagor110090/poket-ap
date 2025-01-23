@@ -16,6 +16,7 @@ const TaskCard = ({ task, onPress, onToggleStatus, updatingTaskId }) => {
       minute: '2-digit',
       hour12: true 
     });
+ 
 
     if (date.toDateString() === today.toDateString()) {
       return `Today at ${timeString}`;

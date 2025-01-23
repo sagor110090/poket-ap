@@ -3,9 +3,9 @@ import { View, StyleSheet, Platform, StatusBar, Text, Pressable, Alert, Activity
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import ExpenseOverview from './tabs/ExpenseOverviewTab';
-import ExpensesList from './tabs/ExpenseListTab';
-import CategoriesTab from './tabs/ExpenseCategoriesTab';
+import ExpenseOverview from './tabs/expense/ExpenseOverviewTab';
+import ExpensesList from './tabs/expense/ExpenseListTab';
+import CategoriesTab from './tabs/expense/ExpenseCategoriesTab';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -65,7 +65,7 @@ const ExpenseScreen = ({ navigation }) => {
           <Ionicons name="person-circle-outline" size={24} color="#2196F3" />
           <Text style={styles.username}>{user?.name || 'User'}</Text>
         </View>
-        <Pressable 
+        <Pressable
           style={({ pressed }) => [
             styles.logoutButton,
             pressed && styles.logoutButtonPressed
@@ -86,22 +86,22 @@ const ExpenseScreen = ({ navigation }) => {
             tabBarStyle: styles.tabBar,
             tabBarIndicatorStyle: styles.tabIndicator,
           }}>
-          <Tab.Screen 
-            name="Overview" 
+          <Tab.Screen
+            name="Overview"
             component={ExpenseOverview}
             options={{
               tabBarLabel: 'Overview',
             }}
           />
-          <Tab.Screen 
-            name="Expenses" 
+          <Tab.Screen
+            name="Expenses"
             component={ExpensesList}
             options={{
               tabBarLabel: 'Expenses',
             }}
           />
-          <Tab.Screen 
-            name="Categories" 
+          <Tab.Screen
+            name="Categories"
             component={CategoriesTab}
             options={{
               tabBarLabel: 'Categories',

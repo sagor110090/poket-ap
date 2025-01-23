@@ -3,13 +3,13 @@ import { View, StyleSheet, Platform, StatusBar, Text, Pressable, Alert, Activity
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import TasksTab from './tabs/task/TasksTab';
-import CalendarTab from './tabs/task/CalendarTab';
-import AnalyticsTab from './tabs/task/AnalyticsTab';
+import AllTab from './tabs/note/AllTab';
+import ArchiveTab from './tabs/note/ArchiveTab';
+import PinTab from './tabs/note/PinTab';
 
 const Tab = createMaterialTopTabNavigator();
 
-const HomeScreen = ({ navigation }) => {
+const NotesScreen = ({ navigation }) => {
   const { user, logout, loading } = useAuth();
 
   const handleLogout = async () => {
@@ -90,26 +90,28 @@ const HomeScreen = ({ navigation }) => {
           }}
         >
           <Tab.Screen
-            name="Tasks"
-            component={TasksTab}
+            name="All"
+            component={AllTab}
             options={{
-              tabBarLabel: 'Tasks',
+              tabBarLabel: 'All',
             }}
           />
           <Tab.Screen
-            name="Calendar"
-            component={CalendarTab}
+            name="Pin"
+            component={PinTab}
             options={{
-              tabBarLabel: 'Calendar',
+              tabBarLabel: 'Pin',
             }}
           />
           <Tab.Screen
-            name="Analytics"
-            component={AnalyticsTab}
+            name="Archive"
+            component={ArchiveTab}
             options={{
-              tabBarLabel: 'Analytics',
+              tabBarLabel: 'Archive',
             }}
           />
+
+
         </Tab.Navigator>
       </View>
     </View>
@@ -160,4 +162,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default NotesScreen;

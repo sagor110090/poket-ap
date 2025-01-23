@@ -4715,6 +4715,21 @@ react-is@^18.0.0, react-is@^18.2.0:
   resolved "https://registry.npmjs.org/react-is/-/react-is-18.3.1.tgz"
   integrity sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==
 
+react-laravel-pagination@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/react-laravel-pagination/-/react-laravel-pagination-1.0.1.tgz#932c6ebcad29fdbf2704910884695c7ff4c33a12"
+  integrity sha512-5FJO7aG9fXDSPpfgVPwvHdYNg7Ggz6KjnONh9Vepx3xeBpRfeS+o1ON3es/Yiz/kZzfnRpYWuFiX7ysnNThzTw==
+
+react-laravel-paginex@^2.0.8:
+  version "2.0.8"
+  resolved "https://registry.yarnpkg.com/react-laravel-paginex/-/react-laravel-paginex-2.0.8.tgz#c37a095b38ba778e4c4900a8c593f2d23bc02028"
+  integrity sha512-wbGGy49x14YoUZVNESYro6vIyBM9uqP70mtvp+FRiXQCphaBBh4RsmcEUC5p8Et5hEBSB4AlYJqfgAkVTExE4g==
+
+react-native-laravel-pagination@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/react-native-laravel-pagination/-/react-native-laravel-pagination-1.0.1.tgz#4e0c398ba0cb9c4e6c1a27ada89cfcdef4965d00"
+  integrity sha512-ArSquOdKOu1KipCHvKIaVmtUZxjeLVpRKHfGtlOm5Jlms04QWn8PpWaNZsKLSg3ikfe2ckwnNsabfzfN/f/Nog==
+
 react-native-pager-view@6.5.1:
   version "6.5.1"
   resolved "https://registry.yarnpkg.com/react-native-pager-view/-/react-native-pager-view-6.5.1.tgz#e639e8c975f4c749aae1c3120dc4208265fce4cc"

@@ -13,6 +13,7 @@ import NewTaskScreen from '../screens/NewTaskScreen';
 import ExpenseScreen from '../screens/ExpenseScreen';
 import NewExpenseScreen from '../screens/NewExpenseScreen';
 import EditTaskScreen from '../screens/EditTaskScreen';
+import NotesScreen from '../screens/NotesScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -24,24 +25,24 @@ const HomeStack = () => {
         headerShown: false,
       }}
     >
-    <Stack.Screen 
-      name="HomeScreen" 
-      component={HomeScreen}
-    />
-    <Stack.Screen 
-      name="NewTask" 
-      component={NewTaskScreen}
-      options={{ 
-        headerShown: false, 
-    }}
-    />
-    <Stack.Screen
-      name="EditTask"
-      component={EditTaskScreen}
-      options={{ headerShown: false }}
-    />
-  </Stack.Navigator>
-);
+      <Stack.Screen
+        name="HomeScreen"
+        component={HomeScreen}
+      />
+      <Stack.Screen
+        name="NewTask"
+        component={NewTaskScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="EditTask"
+        component={EditTaskScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
 };
 
 const ExpenseStack = () => {
@@ -51,9 +52,9 @@ const ExpenseStack = () => {
         headerShown: false,
       }}
     >
-    <Stack.Screen 
-      name="ExpenseScreen" 
-      component={ExpenseScreen}
+      <Stack.Screen
+        name="ExpenseScreen"
+        component={ExpenseScreen}
         options={{
           headerStyle: {
             backgroundColor: '#fff',
@@ -63,29 +64,46 @@ const ExpenseStack = () => {
             fontWeight: '600',
           },
         }}
-    />
-    <Stack.Screen 
-      name="NewExpense" 
-      component={NewExpenseScreen}
-      options={{ 
+      />
+      <Stack.Screen
+        name="NewExpense"
+        component={NewExpenseScreen}
+        options={{
           headerShown: false,
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
+
+const NotesStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
       }}
-    />
-  </Stack.Navigator>
-);
+    >
+      <Stack.Screen
+        name="NotesScreen"
+        component={NotesScreen}
+      />
+    </Stack.Navigator>
+  );
 };
 
 const TabNavigator = () => {
   return (
-  <Tab.Navigator
+    <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Expenses') {
+          } else if (route.name === 'Expense') {
             iconName = focused ? 'wallet' : 'wallet-outline';
+          } else if (route.name === 'Notes') {
+            iconName = focused ? 'document-text' : 'document-text-outline';
           }
 
           return (
@@ -94,58 +112,64 @@ const TabNavigator = () => {
             </View>
           );
         },
-        tabBarActiveTintColor: '#2196F3',
+        tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: 'gray',
-      tabBarStyle: {
+        tabBarStyle: {
           paddingBottom: 5,
           height: 55,
-      },
+        },
         tabBarLabelStyle: {
           fontSize: 12,
         },
       })}
-  >
-    <Tab.Screen
-      name="Home"
-      component={HomeStack}
-      options={{
-        headerShown: false,
-      }}
-    />
-    <Tab.Screen
-      name="Expenses"
-      component={ExpenseStack}
-      options={{
-        headerShown: false,
-      }}
-    />
-  </Tab.Navigator>
-);
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeStack}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="Expense"
+        component={ExpenseStack}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="Notes"
+        component={NotesStack}
+        options={{
+          headerShown: false,
+        }}
+      />
+    </Tab.Navigator>
+  );
 };
 
 const AppNavigator = () => {
   return (
-  <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
-        initialRouteName="Login"
         screenOptions={{
           headerShown: false,
         }}
       >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
-      <Stack.Screen
-          name="MainApp" 
-        component={TabNavigator}
+        <Stack.Screen
+          name="MainApp"
+          component={TabNavigator}
           options={{
             // Prevent going back to login screen
             gestureEnabled: false,
             headerBackVisible: false,
           }}
-      />
-    </Stack.Navigator>
-  </NavigationContainer>
-);
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
 };
 
 export default AppNavigator;

@@ -13,7 +13,7 @@ const getAuthToken = async () => {
   try {
     const token = await AsyncStorage.getItem('authToken');
     const expiryTime = await AsyncStorage.getItem('tokenExpiry');
-    
+
     if (!token || !expiryTime) {
       return null;
     }
@@ -55,7 +55,8 @@ const clearAuth = async () => {
 // API request wrapper with token handling
 const apiRequest = async (endpoint, options = {}) => {
   const token = await getAuthToken();
-  
+ 
+
   if (!token && endpoint !== '/login') {
     RootNavigation.navigate('Login');
     throw new Error('Authentication required');
@@ -72,7 +73,7 @@ const apiRequest = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(`${API_URL}${endpoint}`, requestOptions);
-    
+
     if (response.status === 401) {
       await clearAuth();
       RootNavigation.navigate('Login');
@@ -94,6 +95,7 @@ const apiRequest = async (endpoint, options = {}) => {
   }
 };
 
+
 const api = {
   login: async (email, password) => {
     try {
@@ -101,11 +103,11 @@ const api = {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
-      
+
       if (data.token) {
         await setAuthToken(data.token);
       }
-      
+
       return data;
     } catch (error) {
       throw error;
@@ -243,6 +245,41 @@ const api = {
       console.error('Registration error:', error);
       throw new Error(error.message || 'Registration failed');
     }
+  },
+  fetchNotes: async (searchQuery, per_page, page, status) => {
+    if (searchQuery) {
+      console.log(searchQuery);
+      return await apiRequest(`/notes?search=${searchQuery}&per_page=${per_page}&page=${page}&status=${status}`);
+    }
+    return await apiRequest(`/notes?per_page=${per_page}&page=${page}&status=${status}`);
+  },
+  createNote: async (noteData) => {
+    const response = await apiRequest('/notes', {
+      method: 'POST',
+      body: JSON.stringify(noteData),
+    });
+    return response;
+  },
+  updateNote: async (noteId, noteData) => {
+    return await apiRequest(`/notes/${noteId}`, {
+      method: 'PUT',
+      body: JSON.stringify(noteData),
+    });
+  },
+  deleteNote: async (noteId) => {
+    return await apiRequest(`/notes/${noteId}`, {
+      method: 'DELETE',
+    });
+  },
+  archiveNote: async (noteId, isArchived) => {
+    return await apiRequest(`/notes/${noteId}/${isArchived ? 'unarchive' : 'archive'}`, {
+      method: 'PATCH',
+    });
+  },
+  pinNote: async (noteId, isPinned) => {
+    return await apiRequest(`/notes/${noteId}/${isPinned ? 'unpin' : 'pin'}`, {
+      method: 'PATCH',
+    });
   },
 };
 
